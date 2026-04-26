@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GameKlub</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111, #000);
+  color: #eee;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  font-size: 20px;
+}
+
+/* Center layout */
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  gap: 80px;
+}
+
+.game {
+  text-align: center;
+  cursor: pointer;
+}
+
+.box {
+  width: 130px;
+  height: 130px;
+  border: 1px solid #555;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.box:hover {
+  border-color: white;
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(255,255,255,0.1);
+}
+
+.game p {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #aaa;
+}
+
+/* Footer */
+.socials {
+  position: absolute;
+  bottom: 20px;
+  left: 30px;
+}
+.socials a { color:#aaa; text-decoration:none; }
+.socials a:hover { color:white; }
+
+.signature {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  color: #555;
+}
+
+/* Popup */
+.popup {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:#000;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+canvas {
+  border:1px solid #444;
+}
+
+/* Leaderboard */
+.leaderboard {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* D-pad */
+.dpad {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  display:none;
+}
+
+.dpad button {
+  width:50px;height:50px;
+  margin:3px;
+  background:#222;
+  color:white;
+  border:none;
+}
+
+@media(max-width:768px){
+  .dpad{display:block;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">GameKlub</div>
+
+<div class="center">
+  <div class="game" onclick="openGame('snake')">
+    <div class="box">■</div>
+    <p>Snake</p>
+  </div>
+
+  <div class="game" onclick="alert('More games coming 😏')">
+    <div class="box">+</div>
+    <p>Coming Soon</p>
+  </div>
+</div>
+
+<div class="socials">
+<a href="https://instagram.com/tuhin0827d" target="_blank">@tuhin0827d</a>
+</div>
+
+<div class="signature">TUHIN MAJI</div>
+
+<div class="popup" id="popup">
+  <div>Score: <span id="score">0</span></div>
+  <canvas id="game" width="400" height="400"></canvas>
+  <div id="over" style="display:none;">Game Over</div>
+  <div class="leaderboard" id="leaderboard"></div>
+</div>
+
+<div class="dpad">
+  <div style="text-align:center"><button onclick="dirSet(0,-1)">↑</button></div>
+  <div>
+    <button onclick="dirSet(-1,0)">←</button>
+    <button onclick="dirSet(1,0)">→</button>
+  </div>
+  <div style="text-align:center"><button onclick="dirSet(0,1)">↓</button></div>
+</div>
+
+<script>
+let ctx = document.getElementById("game").getContext("2d");
+let snake,dir,food,score,loop;
+
+let eatSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.wav");
+let overSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.wav");
+
+function openGame(){
+  document.getElementById("popup").style.display="flex";
+  start();
+}
+
+function start(){
+  snake=[{x:10,y:10}];
+  dir={x:1,y:0};
+  food={x:15,y:15};
+  score=0;
+  document.getElementById("score").innerText=0;
+  document.getElementById("over").style.display="none";
+  clearInterval(loop);
+  loop=setInterval(update,100);
+}
+
+function update(){
+  let head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+
+  if(head.x<0||head.y<0||head.x>=20||head.y>=20||snake.some(s=>s.x==head.x&&s.y==head.y)){
+    gameOver();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if(head.x==food.x&&head.y==food.y){
+    score++;
+    eatSound.play();
+    food={x:Math.random()*20|0,y:Math.random()*20|0};
+  } else snake.pop();
+
+  document.getElementById("score").innerText=score;
+  draw();
+}
+
+function draw(){
+  ctx.clearRect(0,0,400,400);
+
+  snake.forEach(s=>{
+    ctx.shadowBlur=10;
+    ctx.shadowColor="white";
+    ctx.fillRect(s.x*20,s.y*20,18,18);
+  });
+
+  ctx.shadowBlur=0;
+  ctx.font="16px monospace";
+  ctx.fillText("✦",food.x*20+5,food.y*20+15);
+}
+
+function dirSet(x,y){ dir={x,y}; }
+
+document.addEventListener("keydown",e=>{
+  if(e.key=="ArrowUp"||e.key=="w")dirSet(0,-1);
+  if(e.key=="ArrowDown"||e.key=="s")dirSet(0,1);
+  if(e.key=="ArrowLeft"||e.key=="a")dirSet(-1,0);
+  if(e.key=="ArrowRight"||e.key=="d")dirSet(1,0);
+});
+
+function gameOver(){
+  clearInterval(loop);
+  overSound.play();
+  document.getElementById("over").style.display="block";
+
+  let scores=JSON.parse(localStorage.getItem("scores")||"[]");
+  scores.push(score);
+  scores.sort((a,b)=>b-a);
+  scores=scores.slice(0,5);
+  localStorage.setItem("scores",JSON.stringify(scores));
+
+  document.getElementById("leaderboard").innerHTML=
+    "Top Scores:<br>"+scores.join("<br>");
+}
+</script>
+
+</body>
+</html>
