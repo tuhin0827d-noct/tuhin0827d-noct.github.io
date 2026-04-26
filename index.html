@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameByTuhin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+
+/* ===== ROOT ===== */
+:root {
+  --bg: #e9ecef;
+  --card: #f5f6f7;
+  --shadow: rgba(0,0,0,0.08);
+  --text: #333;
+}
+
+/* ===== BASE ===== */
+body {
+  margin:0;
+  font-family:'Inter', sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+/* ===== HEADER ===== */
+header {
+  text-align:center;
+  font-size:28px;
+  font-weight:600;
+  padding:20px;
+}
+
+/* ===== LAYOUT ===== */
+.container {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+}
+
+/* ===== GAME CARDS ===== */
+.card {
+  width:200px;
+  padding:20px;
+  background:var(--card);
+  border-radius:25px;
+  text-align:center;
+  box-shadow: 10px 10px 20px var(--shadow),
+              -10px -10px 20px white;
+  transition:0.3s;
+}
+
+.card:hover {
+  transform:translateY(-5px);
+}
+
+.icon {
+  width:60px;
+  height:60px;
+  margin:auto;
+  border-radius:15px;
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
+}
+
+.card p {
+  margin-top:15px;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  position:fixed;
+  bottom:20px;
+  left:20px;
+}
+
+.signature {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+}
+
+/* ===== POPUP GAME ===== */
+.popup {
+  position:fixed;
+  inset:0;
+  background:#fff;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ===== CANVAS ===== */
+canvas {
+  background:#000;
+  border-radius:15px;
+}
+
+/* ===== UI ===== */
+.ui {
+  margin:10px;
+}
+
+/* ===== DPAD ===== */
+.dpad {
+  position:fixed;
+  bottom:30px;
+  right:30px;
+}
+
+.dpad button {
+  width:50px;
+  height:50px;
+  border:none;
+  border-radius:10px;
+  background:#ddd;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>GameByTuhin</header>
+
+<div class="container">
+
+<div class="card" onclick="openGame()">
+  <div class="icon"></div>
+  <p>Snake</p>
+</div>
+
+<div class="card">
+  <div class="icon"></div>
+  <p>Tetris (soon)</p>
+</div>
+
+<div class="card">
+  <div class="icon"></div>
+  <p>Mario (soon)</p>
+</div>
+
+</div>
+
+<div class="footer">
+<a href="https://instagram.com/tuhin0827d" target="_blank">📷</a>
+</div>
+
+<div class="signature">TUHIN MAJI</div>
+
+<!-- GAME -->
+<div class="popup" id="game">
+
+<div class="ui">
+Score: <span id="score">0</span>
+<button onclick="restart()">Restart</button>
+</div>
+
+<canvas id="c" width="400" height="400"></canvas>
+
+<div class="ui" id="over"></div>
+
+</div>
+
+<!-- DPAD -->
+<div class="dpad">
+<button onclick="setDir(0,-1)">↑</button><br>
+<button onclick="setDir(-1,0)">←</button>
+<button onclick="setDir(1,0)">→</button><br>
+<button onclick="setDir(0,1)">↓</button>
+</div>
+
+<script>
+
+/* ===== SOUND ===== */
+const eat = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.wav");
+const dead = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-lose-2027.wav");
+
+/* ===== GAME STATE ===== */
+let snake, dir, food, score, loop;
+
+/* ===== OPEN ===== */
+function openGame(){
+  document.getElementById("game").style.display="flex";
+  start();
+}
+
+/* ===== START ===== */
+function start(){
+  snake=[{x:10,y:10}];
+  dir={x:1,y:0};
+  food=randomFood();
+  score=0;
+  document.getElementById("over").innerText="";
+  updateScore();
+
+  clearInterval(loop);
+  loop=setInterval(update,100);
+}
+
+/* ===== RANDOM FOOD ===== */
+function randomFood(){
+  return {
+    x: Math.floor(Math.random()*20),
+    y: Math.floor(Math.random()*20)
+  };
+}
+
+/* ===== UPDATE ===== */
+function update(){
+
+  let head={
+    x:snake[0].x+dir.x,
+    y:snake[0].y+dir.y
+  };
+
+  if(collision(head)){
+    gameOver();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if(head.x===food.x && head.y===food.y){
+    score++;
+    eat.play();
+    food=randomFood();
+  } else {
+    snake.pop();
+  }
+
+  draw();
+  updateScore();
+}
+
+/* ===== COLLISION ===== */
+function collision(h){
+  return h.x<0 || h.y<0 || h.x>=20 || h.y>=20 ||
+  snake.some(s=>s.x===h.x && s.y===h.y);
+}
+
+/* ===== DRAW ===== */
+let ctx = document.getElementById("c").getContext("2d");
+
+function draw(){
+  ctx.clearRect(0,0,400,400);
+
+  snake.forEach(s=>{
+    ctx.fillStyle="white";
+    ctx.shadowBlur=10;
+    ctx.shadowColor="white";
+    ctx.fillRect(s.x*20,s.y*20,18,18);
+  });
+
+  ctx.shadowBlur=0;
+  ctx.font="18px monospace";
+  ctx.fillText("✦",food.x*20+5,food.y*20+15);
+}
+
+/* ===== SCORE ===== */
+function updateScore(){
+  document.getElementById("score").innerText=score;
+}
+
+/* ===== GAME OVER ===== */
+function gameOver(){
+  clearInterval(loop);
+  dead.play();
+
+  document.getElementById("over").innerText="Game Over";
+
+  saveScore(score);
+}
+
+/* ===== LEADERBOARD ===== */
+function saveScore(s){
+  let arr=JSON.parse(localStorage.getItem("scores")||"[]");
+  arr.push(s);
+  arr.sort((a,b)=>b-a);
+  arr=arr.slice(0,5);
+  localStorage.setItem("scores",JSON.stringify(arr));
+}
+
+/* ===== CONTROLS ===== */
+function setDir(x,y){
+  dir={x,y};
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowUp"||e.key==="w") setDir(0,-1);
+  if(e.key==="ArrowDown"||e.key==="s") setDir(0,1);
+  if(e.key==="ArrowLeft"||e.key==="a") setDir(-1,0);
+  if(e.key==="ArrowRight"||e.key==="d") setDir(1,0);
+});
+
+/* ===== RESTART ===== */
+function restart(){
+  start();
+}
+
+</script>
+
+</body>
+</html>
